@@ -153,6 +153,8 @@ GROUP BY geolocation_zip_code_prefix;
 
 -- products: English category joined in here, so no staging
 -- table is needed for the translation lookup itself.
+-- Status separates two different gaps: products with no category
+-- at all, and categories missing from the translation file.
 INSERT INTO staging.products
 SELECT
     p.product_id,
@@ -165,8 +167,11 @@ SELECT
     p.product_length_cm,
     p.product_height_cm,
     p.product_width_cm,
-    CASE WHEN t.product_category_name IS NOT NULL
-         THEN 'translated' ELSE 'untranslated' END
+    CASE
+        WHEN p.product_category_name IS NULL THEN 'no_category'
+        WHEN t.product_category_name IS NULL THEN 'missing_translation'
+        ELSE                                      'translated'
+    END
 FROM raw.products p
 LEFT JOIN raw.category_translation t
        ON t.product_category_name = p.product_category_name;
