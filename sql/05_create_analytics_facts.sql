@@ -167,3 +167,106 @@ ON CONFLICT (review_id, order_id) DO UPDATE SET
     has_comment                 = EXCLUDED.has_comment,
     review_response_delay_hours = EXCLUDED.review_response_delay_hours,
     review_creation_date_key    = EXCLUDED.review_creation_date_key;
+
+-- ---------------------------------------------------------
+-- order_summary
+-- Grain: one row per order, with item and payment totals side
+-- by side and a reconciliation status.
+--
+-- Items and payments are aggregated to one row per order
+-- BEFORE joining. Joining the raw rows would fan out: an order
+-- with 2 items and 3 payments would become 6 rows.
+--
+-- Reconciliation is calculated in the same pass, not filled in
+-- by later UPDATEs, so it can never go stale.
+--
+-- Nothing references this table, so TRUNCATE then INSERT is
+-- safe and gives a true rebuild. The transaction means a failed
+-- INSERT leaves the old data in place, not an empty table.
+-- ---------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS analytics.order_summary (
+    order_id                     VARCHAR(50)    PRIMARY KEY,
+    customer_id                  VARCHAR(50)    NOT NULL,
+    purchase_date_key            INTEGER        NOT NULL,
+    order_status                 VARCHAR(30)    NOT NULL,
+    item_count                   INTEGER        NOT NULL,
+    product_value                NUMERIC(12,2)  NOT NULL,
+    freight_value                NUMERIC(12,2)  NOT NULL,
+    item_total_value             NUMERIC(12,2)  NOT NULL,
+    payment_total                NUMERIC(12,2)  NOT NULL,
+    delivered_late               BOOLEAN,
+    delivery_time_hours          NUMERIC(10,2),
+    delivery_vs_estimated_hours  NUMERIC(10,2),
+    reconciliation_status        VARCHAR(40),
+    reconciliation_difference    NUMERIC(12,2)
+);
+
+BEGIN;
+
+TRUNCATE analytics.order_summary;
+
+WITH items AS (
+    SELECT
+        order_id,
+        COUNT(*)              AS item_count,
+        SUM(price)            AS product_value,
+        SUM(freight_value)    AS freight_value,
+        SUM(item_total_value) AS item_total_value
+    FROM analytics.fact_order_items
+    GROUP BY order_id
+),
+payments AS (
+    SELECT
+        order_id,
+        SUM(payment_value) AS payment_total
+    FROM analytics.fact_payments
+    GROUP BY order_id
+),
+combined AS (
+    SELECT
+        o.*,
+        i.order_id IS NOT NULL                 AS has_items,
+        p.order_id IS NOT NULL                 AS has_payments,
+        COALESCE(i.item_count, 0)              AS item_count,
+        COALESCE(i.product_value, 0)           AS product_value,
+        COALESCE(i.freight_value, 0)           AS item_freight_value,
+        COALESCE(i.item_total_value, 0)        AS item_total_value,
+        COALESCE(p.payment_total, 0)           AS payment_total,
+        COALESCE(p.payment_total, 0)
+          - COALESCE(i.item_total_value, 0)    AS difference
+    FROM analytics.fact_orders o
+    LEFT JOIN items    i ON i.order_id = o.order_id
+    LEFT JOIN payments p ON p.order_id = o.order_id
+)
+INSERT INTO analytics.order_summary (
+    order_id, customer_id, purchase_date_key, order_status,
+    item_count, product_value, freight_value, item_total_value,
+    payment_total, delivered_late, delivery_time_hours,
+    delivery_vs_estimated_hours, reconciliation_status,
+    reconciliation_difference
+)
+SELECT
+    order_id,
+    customer_id,
+    purchase_date_key,
+    order_status,
+    item_count,
+    product_value,
+    item_freight_value,
+    item_total_value,
+    payment_total,
+    delivered_late,
+    delivery_time_hours,
+    delivery_vs_estimated_hours,
+    CASE
+        WHEN ABS(difference) <= 0.01 THEN 'reconciled'
+        WHEN NOT has_items           THEN 'payment_without_items'
+        WHEN NOT has_payments        THEN 'items_without_payment'
+        WHEN difference > 0          THEN 'payment_greater_than_items'
+        ELSE                              'items_greater_than_payment'
+    END,
+    difference
+FROM combined;
+
+COMMIT;
