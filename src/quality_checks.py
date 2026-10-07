@@ -51,9 +51,14 @@ def load_checks():
 
 
 def run_checks(stage):
-    """Run every check for one stage. Raise if any critical check fails."""
+    """Run every check for one stage. Raise if any critical check fails.
+
+    Returns {"warnings": n}, the number of warning checks that found
+    rows, so the pipeline can record it in the run log.
+    """
     checks = [c for c in load_checks() if c["stage"] == stage]
     critical_failures = []
+    warnings = 0
 
     connection = get_connection()
     try:
@@ -69,6 +74,7 @@ def run_checks(stage):
                     critical_failures.append(check["name"])
                 else:
                     status = "warn"
+                    warnings += 1
 
                 print(f"  {status:<5} {failing:>7,}  {check['name']}")
     finally:
@@ -79,6 +85,8 @@ def run_checks(stage):
             f"{len(critical_failures)} critical check(s) failed: "
             + ", ".join(critical_failures)
         )
+
+    return {"warnings": warnings}
 
 
 def main():
