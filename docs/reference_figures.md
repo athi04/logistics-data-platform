@@ -61,6 +61,19 @@ count 1,292 orders delivered on the promised day as late.
 | Sum of order_count | 99,470, more than the 98,666 orders with items, because 786 orders span several categories |
 | Top category by value | health_beauty, 1,441,248.07 BRL |
 
+## Customers (marts.customer_performance)
+
+| Figure | Value |
+|---|---|
+| Real customers (customer_unique_id) | 96,096 |
+| Repeat customers (more than one order) | 2,997 (3.12%) |
+| Sum of order_count | 99,441 (equals all orders) |
+| Sum of total_spent | 15,843,553.24 BRL (equals item total) |
+| Customers with no review | 716 |
+| Customers whose orders had no items | 676 |
+| Avg review score, no late delivery | 4.29 (86,857 customers) |
+| Avg review score, at least one late delivery | 2.30 (6,499 customers) |
+
 ## Money
 
 | Figure | BRL |

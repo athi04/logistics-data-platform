@@ -38,6 +38,7 @@ EXPECTED_ROWS = {
     "analytics.order_summary": 99_441,
     "marts.delivery_performance": 99_441,
     "marts.category_performance": 74,
+    "marts.customer_performance": 96_096,
 }
 
 
