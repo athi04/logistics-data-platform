@@ -74,6 +74,30 @@ count 1,292 orders delivered on the promised day as late.
 | Avg review score, no late delivery | 4.29 (86,857 customers) |
 | Avg review score, at least one late delivery | 2.30 (6,499 customers) |
 
+## Payments (marts.payment_analysis)
+
+| Main payment type | Orders | Share | Avg order payment (BRL) |
+|---|---|---|---|
+| credit_card | 74,975 | 75.40% | 167.29 |
+| boleto | 19,784 | 19.90% | 145.03 |
+| voucher | 3,151 | 3.17% | 120.29 |
+| debit_card | 1,527 | 1.54% | 142.72 |
+| not_defined | 3 | | 0.00 |
+| none | 1 | | 0.00 |
+
+| Instalment band | Orders | Avg order payment (BRL) |
+|---|---|---|
+| 1 | 48,268 | 121.04 |
+| 2-5 | 35,089 | 149.20 |
+| 6-10 | 15,740 | 305.48 |
+| 11+ | 341 | 360.37 |
+| invalid_zero | 2 | 94.32 |
+| no_payment | 1 | 0.00 |
+
+Payment without items (772 orders, 162,591.95 BRL): 603 unavailable,
+161 canceled, 8 other statuses. Mostly paid orders the seller could
+not fulfil, not data errors.
+
 ## Money
 
 | Figure | BRL |

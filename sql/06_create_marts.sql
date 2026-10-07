@@ -226,3 +226,92 @@ JOIN      latest_state  l ON l.customer_unique_id = t.customer_unique_id
 LEFT JOIN review_totals r ON r.customer_unique_id = t.customer_unique_id;
 
 COMMIT;
+
+-- ---------------------------------------------------------
+-- payment_analysis
+-- Grain: one row per order.
+-- Question: how do customers pay, and which orders do not
+-- reconcile?
+--
+-- One row per order (not per payment) so every order appears,
+-- including the one with no payment, and so Power BI can slice
+-- payment behaviour by the same filters as the other marts.
+-- Payments are aggregated per order in CTEs before joining.
+-- ---------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS marts.payment_analysis (
+    order_id                   VARCHAR(50)    PRIMARY KEY,
+    purchase_date_key          INTEGER        NOT NULL,
+    customer_state             CHAR(2)        NOT NULL,
+    order_status               VARCHAR(30)    NOT NULL,
+    payment_count              INTEGER        NOT NULL,
+    payment_types              VARCHAR(100)   NOT NULL,
+    main_payment_type          VARCHAR(30)    NOT NULL,
+    uses_voucher               BOOLEAN        NOT NULL,
+    max_installments           INTEGER,
+    installment_band           VARCHAR(20)    NOT NULL,
+    payment_total              NUMERIC(12,2)  NOT NULL,
+    item_total_value           NUMERIC(12,2)  NOT NULL,
+    reconciliation_status      VARCHAR(40)    NOT NULL,
+    reconciliation_difference  NUMERIC(12,2)  NOT NULL
+);
+
+BEGIN;
+
+TRUNCATE marts.payment_analysis;
+
+WITH payment_totals AS (
+    -- One row per order: how it was paid
+    SELECT
+        order_id,
+        COUNT(*)                                           AS payment_count,
+        STRING_AGG(DISTINCT payment_type, '+'
+                   ORDER BY payment_type)                  AS payment_types,
+        BOOL_OR(payment_type = 'voucher')                  AS uses_voucher,
+        MAX(payment_installments)                          AS max_installments
+    FROM analytics.fact_payments
+    GROUP BY order_id
+),
+main_type AS (
+    -- One row per order: the method that paid the largest amount.
+    -- payment_sequential breaks ties so the result never varies.
+    SELECT DISTINCT ON (order_id)
+        order_id,
+        payment_type
+    FROM analytics.fact_payments
+    ORDER BY order_id, payment_value DESC, payment_sequential
+)
+INSERT INTO marts.payment_analysis (
+    order_id, purchase_date_key, customer_state, order_status,
+    payment_count, payment_types, main_payment_type, uses_voucher,
+    max_installments, installment_band, payment_total,
+    item_total_value, reconciliation_status, reconciliation_difference
+)
+SELECT
+    s.order_id,
+    s.purchase_date_key,
+    c.customer_state,
+    s.order_status,
+    COALESCE(p.payment_count, 0),
+    COALESCE(p.payment_types, 'none'),
+    COALESCE(m.payment_type,  'none'),
+    COALESCE(p.uses_voucher, FALSE),
+    p.max_installments,
+    CASE
+        WHEN p.max_installments IS NULL THEN 'no_payment'
+        WHEN p.max_installments = 0     THEN 'invalid_zero'
+        WHEN p.max_installments = 1     THEN '1'
+        WHEN p.max_installments <= 5    THEN '2-5'
+        WHEN p.max_installments <= 10   THEN '6-10'
+        ELSE                                 '11+'
+    END,
+    s.payment_total,
+    s.item_total_value,
+    s.reconciliation_status,
+    s.reconciliation_difference
+FROM analytics.order_summary s
+JOIN      analytics.dim_customer c ON c.customer_id = s.customer_id
+LEFT JOIN payment_totals         p ON p.order_id    = s.order_id
+LEFT JOIN main_type              m ON m.order_id    = s.order_id;
+
+COMMIT;
