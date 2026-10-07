@@ -51,6 +51,16 @@ count 1,292 orders delivered on the promised day as late.
 | no_category | 610 |
 | missing_translation | 13 |
 
+## Categories (marts.category_performance)
+
+| Figure | Value |
+|---|---|
+| Categories | 74 (71 translated, 2 missing a translation, 1 unknown) |
+| Sum of item_count | 112,650 (equals all items) |
+| Sum of total_value | 15,843,553.24 BRL (equals item total) |
+| Sum of order_count | 99,470, more than the 98,666 orders with items, because 786 orders span several categories |
+| Top category by value | health_beauty, 1,441,248.07 BRL |
+
 ## Money
 
 | Figure | BRL |

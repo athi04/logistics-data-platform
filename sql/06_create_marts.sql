@@ -65,3 +65,58 @@ FROM analytics.fact_orders o
 JOIN analytics.dim_customer c ON c.customer_id = o.customer_id;
 
 COMMIT;
+
+-- ---------------------------------------------------------
+-- category_performance
+-- Grain: one row per product category.
+-- Question: which categories bring in the most money, and how?
+--
+-- Category name: English when translated, the Portuguese name
+-- when the translation file is missing it, 'unknown' when the
+-- product has no category at all.
+--
+-- order_count counts DISTINCT orders per category. An order with
+-- items in two categories counts once in each, so the column sums
+-- to more than the number of orders. Item and money columns do
+-- add up to the overall totals, because each item has exactly
+-- one category.
+-- ---------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS marts.category_performance (
+    category                     VARCHAR(100)   PRIMARY KEY,
+    category_translation_status  VARCHAR(20)    NOT NULL,
+    order_count                  INTEGER        NOT NULL,
+    item_count                   INTEGER        NOT NULL,
+    product_value                NUMERIC(14,2)  NOT NULL,
+    freight_value                NUMERIC(14,2)  NOT NULL,
+    total_value                  NUMERIC(14,2)  NOT NULL,
+    avg_item_price               NUMERIC(10,2)  NOT NULL,
+    freight_share                NUMERIC(5,4)   NOT NULL
+);
+
+BEGIN;
+
+TRUNCATE marts.category_performance;
+
+INSERT INTO marts.category_performance (
+    category, category_translation_status, order_count, item_count,
+    product_value, freight_value, total_value, avg_item_price,
+    freight_share
+)
+SELECT
+    COALESCE(p.product_category_name_english,
+             p.product_category_name,
+             'unknown')                          AS category,
+    p.category_translation_status,
+    COUNT(DISTINCT f.order_id),
+    COUNT(*),
+    SUM(f.price),
+    SUM(f.freight_value),
+    SUM(f.item_total_value),
+    ROUND(AVG(f.price), 2),
+    ROUND(SUM(f.freight_value) / SUM(f.item_total_value), 4)
+FROM analytics.fact_order_items f
+JOIN analytics.dim_product p ON p.product_id = f.product_id
+GROUP BY 1, 2;
+
+COMMIT;
