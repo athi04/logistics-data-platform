@@ -1,0 +1,69 @@
+# Build the whole warehouse from scratch and run every test,
+# on every push to main and every pull request.
+
+name: pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:        # adds a "Run workflow" button on GitHub
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # A fresh Postgres 17 for every run, matching docker-compose.yml
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: logistics
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # Read by src/database.py in place of the .env file
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: logistics
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download the Olist CSVs from the data release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download data-v1 --pattern olist-data.zip
+          unzip -q olist-data.zip
+          ls -l data
+
+      - name: Run code tests (no database needed)
+        run: pytest tests/test_quality_checks.py tests/test_load_raw.py -k "not database"
+
+      - name: Build the warehouse
+        run: python src/run_pipeline.py
+
+      - name: Run all tests
+        run: pytest -v

@@ -13,3 +13,6 @@ data/
 
 # Editor
 .vscode/
+
+# Data release archive
+*.zip
