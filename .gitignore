@@ -1,6 +1,15 @@
+# Secrets
 .env
+
+# Python
 __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Data and backups (too large, and reproducible)
 data/
+*.dump
+
+# Editor
+.vscode/
