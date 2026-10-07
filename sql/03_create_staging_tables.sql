@@ -139,13 +139,15 @@ FROM raw.sellers;
 -- geolocation: about 1,000,000 points become one row per prefix.
 -- Coordinates are averaged; city and state take the most common
 -- value (MODE), so a few misspelled rows cannot win.
+-- COLLATE "C" makes ties break the same way on every machine:
+-- without it the winner depends on the server's locale.
 INSERT INTO staging.geolocation
 SELECT
     geolocation_zip_code_prefix,
     ROUND(AVG(geolocation_lat), 7),
     ROUND(AVG(geolocation_lng), 7),
-    MODE() WITHIN GROUP (ORDER BY geolocation_city),
-    MODE() WITHIN GROUP (ORDER BY geolocation_state)
+    MODE() WITHIN GROUP (ORDER BY geolocation_city  COLLATE "C"),
+    MODE() WITHIN GROUP (ORDER BY geolocation_state COLLATE "C")
 FROM raw.geolocation
 GROUP BY geolocation_zip_code_prefix;
 
