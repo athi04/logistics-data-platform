@@ -129,3 +129,22 @@ Exceptions net to 165,319.55; adding the -0.67 of rounding gives the
 |---|---|
 | Raw load, row by row vs COPY | 128.746 s vs 23.771 s (5.42x faster) |
 | Full pipeline from empty | under one minute |
+
+## Data quality (sql/07_data_quality_checks.sql)
+
+15 critical checks, all passing. 12 known source issues, reported as warnings:
+
+| Check | Failing rows |
+|---|---|
+| raw_carrier_before_approval | 1,359 |
+| raw_products_without_category | 610 |
+| analytics_orders_without_items | 775 |
+| staging_customers_without_coordinates | 278 |
+| raw_geolocation_outside_brazil | 42 |
+| raw_delivered_before_carrier | 23 |
+| analytics_delivered_without_date | 8 |
+| staging_sellers_without_coordinates | 7 |
+| analytics_canceled_after_delivery | 6 |
+| raw_payment_type_not_defined | 3 |
+| raw_installments_below_one | 2 |
+| raw_products_without_dimensions | 2 |

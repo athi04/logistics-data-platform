@@ -14,6 +14,7 @@ from pathlib import Path
 
 from database import get_connection
 from load_raw import load_raw_tables
+from quality_checks import run_checks
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -73,10 +74,14 @@ STEPS = [
     ("Create schemas",         lambda: run_sql_file("01_create_schemas.sql")),
     ("Create raw tables",      lambda: run_sql_file("02_create_raw_tables.sql")),
     ("Load raw from CSV",      run_raw_load),
+    ("Check raw",              lambda: run_checks("raw")),
     ("Build staging",          lambda: run_sql_file("03_create_staging_tables.sql")),
+    ("Check staging",          lambda: run_checks("staging")),
     ("Build dimensions",       lambda: run_sql_file("04_create_analytics_dimensions.sql")),
     ("Build facts",            lambda: run_sql_file("05_create_analytics_facts.sql")),
+    ("Check analytics",        lambda: run_checks("analytics")),
     ("Build marts",            lambda: run_sql_file("06_create_marts.sql")),
+    ("Check marts",            lambda: run_checks("marts")),
 ]
 
 
