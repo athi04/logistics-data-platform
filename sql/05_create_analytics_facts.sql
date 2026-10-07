@@ -12,6 +12,9 @@
 -- from dim_date fails loudly on the foreign key.
 -- delivered_late is NULL when the order was never delivered:
 -- comparing NULL to a date gives NULL, not false.
+-- Dates, not timestamps, are compared: every estimated delivery
+-- is stored as midnight, so a timestamp comparison marked orders
+-- delivered on the promised day as late (1,292 of them).
 -- ---------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS analytics.fact_orders (
@@ -42,7 +45,7 @@ SELECT
     carrier_delay_hours,
     delivery_time_hours,
     delivery_vs_estimated_hours,
-    order_delivered_customer_date > order_estimated_delivery_date
+    order_delivered_customer_date::DATE > order_estimated_delivery_date::DATE
 FROM staging.orders
 ON CONFLICT (order_id) DO UPDATE SET
     customer_id                 = EXCLUDED.customer_id,
