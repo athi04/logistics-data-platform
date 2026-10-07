@@ -32,6 +32,17 @@ count 1,292 orders delivered on the promised day as late.
 | Late | 6,535 (6.77% of delivered) |
 | No delivery date | 2,965 |
 
+## Delivery categories (marts.delivery_performance)
+
+| Category | Orders |
+|---|---|
+| on_time_or_early | 89,941 (includes 5 canceled after delivery) |
+| late | 6,535 (includes 1 canceled after delivery) |
+| in_progress | 1,729 |
+| not_completed | 1,228 |
+| missing_delivery_date | 8 |
+| **Total** | **99,441** |
+
 ## Products
 
 | Category translation status | Products |

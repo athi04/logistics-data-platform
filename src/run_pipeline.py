@@ -36,6 +36,7 @@ EXPECTED_ROWS = {
     "analytics.fact_payments": 103_886,
     "analytics.fact_reviews": 99_224,
     "analytics.order_summary": 99_441,
+    "marts.delivery_performance": 99_441,
 }
 
 
@@ -72,6 +73,7 @@ STEPS = [
     ("Build staging",          lambda: run_sql_file("03_create_staging_tables.sql")),
     ("Build dimensions",       lambda: run_sql_file("04_create_analytics_dimensions.sql")),
     ("Build facts",            lambda: run_sql_file("05_create_analytics_facts.sql")),
+    ("Build marts",            lambda: run_sql_file("06_create_marts.sql")),
 ]
 
 
