@@ -6,7 +6,17 @@ name: pipeline
 on:
   push:
     branches: [main]
+    # Skip the run when a push only changes documentation or the
+    # dashboard. If any other file changes too, the run still happens.
+    paths-ignore:
+      - "README.md"
+      - "docs/**"
+      - "powerbi/**"
   pull_request:
+    paths-ignore:
+      - "README.md"
+      - "docs/**"
+      - "powerbi/**"
   workflow_dispatch:        # adds a "Run workflow" button on GitHub
 
 jobs:
