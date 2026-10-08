@@ -2,7 +2,7 @@
 
 A PostgreSQL data warehouse built from the Olist Brazilian ecommerce dataset, with a Power BI dashboard on top. One command rebuilds everything from the raw CSV files, data quality checks run between every stage, and GitHub Actions rebuilds and tests the whole warehouse on every push.
 
-![pipeline](https://github.com/athi04/logistics-data-platform/actions/workflows/pipeline.yml/badge.svg)
+[![pipeline](https://github.com/athi04/logistics-data-platform/actions/workflows/pipeline.yml/badge.svg)](https://github.com/athi04/logistics-data-platform/actions/workflows/pipeline.yml)
 
 ## What the data shows
 
@@ -16,7 +16,7 @@ Olist is a Brazilian marketplace. The dataset covers 99,441 orders placed betwee
 | Average review score, customers with no late delivery | 4.29 out of 5 |
 | Average review score, customers with at least one late delivery | 2.30 out of 5 |
 | Customers who ever ordered again | 3.1% |
-| Average spend, repeat customers against one off customers | 307.66 against 160.28 BRL |
+| Average spend, repeat customers against customers who ordered once | 307.66 against 160.28 BRL |
 | Freight as a share of what customers paid | 14.2% overall, 26.8% for Christmas supplies |
 | Orders whose payments match their items to the centavo | 98.92% |
 
@@ -68,11 +68,11 @@ Building the warehouse meant checking every figure, and several were wrong at fi
 
 **Joining items to payments would have overstated sales by 722,990.61 BRL.** An order with two items and three payments becomes six rows in a direct join. Items and payments are summed per order first, then joined.
 
-**Every customer looked like a one off buyer.** Olist issues a new `customer_id` for every order. The customer tables use `customer_unique_id`, which identifies the person, and that revealed the 3.1% of customers who came back.
+**Every customer looked like they had only ordered once.** Olist issues a new `customer_id` for every order. The customer tables use `customer_unique_id`, which identifies the person, and that revealed the 3.1% of customers who came back.
 
 **The same SQL gave different answers on different machines.** City names for each ZIP prefix are chosen by the most common value, and one tie was broken by the server's language settings. Fixing the sort order with `COLLATE "C"` made results identical everywhere.
 
-**Rebuilding from empty found gaps the live database hid.** The schema script never created two of the three schemas; the live database only had them because they were once created by hand.
+**Rebuilding from empty found gaps the live database hid.** The schema script never created the `staging` and `analytics` schemas; the live database only had them because they were once created by hand.
 
 **Loading speed.** In an early version, loading with `COPY` took 23.8 seconds against 128.7 seconds row by row, about 5.4 times faster.
 
@@ -144,4 +144,4 @@ docs/                              reference figures, dashboard PDF and images
 
 ## Data source
 
-[Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce), published under CC BY-NC-SA 4.0. Olist owns the data; this project uses it for non commercial portfolio purposes.
+[Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce), published under CC BY-NC-SA 4.0. Olist owns the data; this project uses it for a portfolio, not for any commercial purpose.
